@@ -1,0 +1,1 @@
+We'll be using the MovieLens dataset for this project. [Dataset here](http://grouplens.org/datasets/movielens/10m/)
