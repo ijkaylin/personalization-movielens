@@ -10,7 +10,7 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
 
 
 _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
-_ratings = pd.read_csv('./ratings100K.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+_ratings = pd.read_csv('./ratings.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 
 def build_movie_genre_matrix(movies):
     """
@@ -24,8 +24,6 @@ def build_movie_genre_matrix(movies):
         movieid = row.loc['MovieId']
         for g in genres:  
             movie_genre.append({'MovieId': movieid, 'Genre': g})
-    
-
 
     moviegenrecol = ['Action', 'Adventure', 'Animation', 'Children', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy', 'Film-Noir', 'Horror', 'IMAX', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
     test = pd.DataFrame(0, index = np.arange(len(movies)), columns = moviegenrecol)
@@ -54,6 +52,7 @@ def build_user_item_matrix(ratings, movies):
     unique_users = ratings['UserId'].unique()
     unique_movies = movies['MovieId'].unique()
     n = len(unique_users)
+    print "Number of unique users is {}".format(n)
     m = len(unique_movies)
     # build matrix with default Nones
     matrix = np.full((n, m), None)
