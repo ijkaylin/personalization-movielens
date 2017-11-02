@@ -10,7 +10,7 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
 
 
 _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
-_ratings = pd.read_csv('./ratings1m.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+_ratings = pd.read_csv('./ratings100K.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 
 def build_movie_genre_matrix(movies):
     """
@@ -52,11 +52,28 @@ def build_user_item_matrix(ratings, movies):
     @returns matrix numpy matrix with a user's ratings per movie
     """
     unique_users = ratings['UserId'].unique()
+    unique_movies = movies['MovieId'].unique()
+    n = len(unique_users)
+    m = len(unique_movies)
+    # build matrix with default Nones
+    matrix = np.full((n, m), None)
+    matrix = pd.DataFrame(matrix, index = unique_users, columns = unique_movies)
+    # fill in
+    count = 1
+    toCount = len(ratings)
+    for row in ratings.itertuples():
+        u_id = row.UserId
+        m_id = row.MovieId
+        rating = row.Rating
+        matrix.at[u_id, m_id] = rating
+        count += 1
+        print "Finished setting {}/{}".format(count, toCount)
+
+    return matrix
 
 
 
 
-print build_user_item_matrix(_ratings)[0:10]
 
 
 
