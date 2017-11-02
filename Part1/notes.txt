@@ -1,0 +1,4 @@
+3.6.3 Matrix factorization in textbook
+
+ratings.dat: UserID::MovieID::Rating::Timestamp
+movies.dat: MovieId::Title::Tag1|Tag2|Tag3
