@@ -11,15 +11,15 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
  'Animation', 'Children\'s', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy',
  'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
 
-_ratings = pd.read_csv('./ratings1m.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+print "Evaluate: Starting the script"
+
+_ratings = pd.read_csv('./ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
 
-
-# small = F.sample(_ratings, 100, 10) # subset of 100 most popular movies users, 10 most popular movies
+small = F.sample(_ratings, 100, 10) # subset of 100 most popular movies users, 10 most popular movies
 # medium = F.sample(_ratings, 1000, 50)
 # large = F.sample(_ratings, 5000, 100)
 
-print "Evaluate"
 
 # define our own baseline algorithm that Surprise can use. Just predict the average!
 class AvgBase(AlgoBase):
@@ -35,6 +35,33 @@ class AvgBase(AlgoBase):
 
     def estimate(self, u, i):
         return self.mean
+
+
+
+
+def normalize_user_means(ratings):
+    """
+    @param Ratings pandas dataframe
+    @returns user mean normalized dataframe
+    """
+    # df.loc[df['line_race'] == 0, 'rating'] = 0
+    u_i_df = F.build_user_item_matrix(ratings)
+    means = u_i_df.mean(axis=1)
+
+    # df.loc[df['item'] == 'apple', 'freshness'] = apple
+
+    def f(row):
+        u_id = row["UserId"]
+        new_r = row["Rating"] - means[u_id]
+        return new_r
+
+    ratings['Rating'] = ratings.apply(f, axis = 1)
+    return ratings
+    
+    
+    
+
+
 
 # we need something to test our model against. Use above defined model.
 def train_baseline(ratings):
@@ -89,6 +116,8 @@ def train(ratings, k_neighbors, k_folds):
     return (algo, testset)
 
 
+# FIX THIS
+# For every item that a user would be rated, in top k
 def calculate_catalog_coverage(ratings, algo, k):
     """
     Calculate the catalog coverage of a model over a dataset
@@ -138,23 +167,51 @@ def evaluate(algo, ratings, testset):
 
 
 
+# class_set = [ 
+#     ('A', 'w', 4),  
+#     ('A', 'x', 3),
+#     ('A', 'z', 5),
+#     ('J', 'w', 3),
+#     ('J', 'y', 4),
+#     ('J', 'z', 2),
+#     ('E', 'w', 3),
+#     ('E', 'x', 5),
+#     ('E', 'z', 2),
+#     ('K', 'y', 2),
+#     ('K', 'z', 5),
+#     ('S', 'x', 3),
+#     ('S', 'y', 2),
+#     ('T', 'w', 4),
+#     ('T', 'x', 2),
+#     ('T', 'y', 1),
+#     ('T', 'z', 2),
+#     ('Z', 'x', 4),
+#     ('Z', 'y', 3)
+# ]
+
+# class_frame = pd.DataFrame(class_set)
+# algo = train(class_frame, 5, 5)
+
+
+
 # run models with some different parameters and sizes
-samples = [ [1000, 10], [5000, 50], [100000, 1000], [5000000, 2000] ]
-k_s = [3, 5, 10, 15, 30, 40]
+# samples = [ [1000, 10], [5000, 50], [100000, 1000], [5000000, 2000] ]
+# samples = [ [1000, 10], [5000, 50] ]
+# k_s = [3, 5, 10, 15, 30, 40]
 
-for sample in samples:
-    i, j = sample
-    _dataset = F.sample(_ratings, i, j)
-    print "Evaluating Baseline and KNN on the dataset with {} users and {} items".format(i, j)
-    print "Evaluating baseline"
+# for sample in samples:
+#     i, j = sample
+#     _dataset = F.sample(_ratings, i, j)
+#     print "Evaluating Baseline and KNN on the dataset with {} users and {} items".format(i, j)
+#     print "Evaluating baseline"
 
-    base, base_test = train_baseline(_dataset)
-    evaluate(base, _dataset, base_test)
+#     base, base_test = train_baseline(_dataset)
+#     evaluate(base, _dataset, base_test)
 
-    for k in k_s:
-        knn, knn_test = train(_dataset, k, 5)
+#     for k in k_s:
+#         knn, knn_test = train(_dataset, k, 5)
 
-        print "Evaluating KNN with k of {}".format(k)
-        evaluate(knn, _dataset, knn_test)
+#         print "Evaluating KNN with k of {}".format(k)
+#         evaluate(knn, _dataset, knn_test)
 
 
