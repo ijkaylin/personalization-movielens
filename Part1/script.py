@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from sklearn import cross_validation as cv
 import funcs as F
+import itertools as it
 
 moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
  'Animation', 'Children\'s', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy',
@@ -38,7 +39,6 @@ class AvgBase(AlgoBase):
 
 
 
-
 def normalize_user_means(ratings):
     """
     @param Ratings pandas dataframe
@@ -57,7 +57,6 @@ def normalize_user_means(ratings):
 
     ratings['Rating'] = ratings.apply(f, axis = 1)
     return ratings
-    
     
     
 
@@ -116,27 +115,39 @@ def train(ratings, k_neighbors, k_folds):
     return (algo, testset)
 
 
+def group_predictions_by_user(predictions):
+    """
+    @param List of Surprise predictions objects
+    @returns Dict {uid: [P1, P2, ...PN]} hash mapping user id to top n predictions
+    """
+    p = sorted(predictions, key = lambda x: x.uid)
+
+    groups = {}
+    for k, g in it.groupby(p, lambda x: x.uid):
+        groups[k] = sorted(list(g), key = lambda x: x.est, reverse = True)
+
+    return groups
+
+
+
 # FIX THIS
 # For every item that a user would be rated, in top k
-def calculate_catalog_coverage(ratings, algo, k):
+def calculate_catalog_coverage(ratings, predictions, k):
     """
     Calculate the catalog coverage of a model over a dataset
     @param ratings pandas dataframe with UserId, MovieId, Ratings. Must be the same set the model was trained on
-    @param algo Surprise KNN algorithm which has ALREADY been trained; we can use this to find neighbors
-    @oaram k Int the neighborhood size
+    @param List Surprise predictions
+    @oaram k Int the top k recommendations size
     @returns Float percentage of items recommended to at least one user
     """
-    movie_ids = ratings['MovieId'].unique()
-    n_movies = len(movie_ids)
+    n_movies = ratings['MovieId'].nunique()
 
     movies_reccommended = set() # keep track of which movies are recommended. Note we only care about the number
-    for m_id in movie_ids:
-        # note, we need the surprise internal `inner_id` to query neighbors
-        inner_id = algo.trainset.to_inner_iid(m_id)
-        neighbors = algo.get_neighbors(inner_id, k)
-        for n in neighbors:
-            raw_id = algo.trainset.to_raw_iid(n)
-            movies_reccommended.add(raw_id)
+
+    recommendations = group_predictions_by_user(predictions)
+    for u_id, recs in recommendations.iteritems():
+        movies_reccommended.update(map(lambda x: x.iid, recs[0:3]))
+
 
     return len(movies_reccommended) / float(n_movies)
 
@@ -163,7 +174,7 @@ def evaluate(algo, ratings, testset):
 
     # Hackish, baseline does not have a sense of "neighbors"
     if (algo.__module__ == "surprise.prediction_algorithms.knns"):
-        print "Evaluate: CC of the model is {}".format(calculate_catalog_coverage(ratings, algo, algo.k))
+        print "Evaluate: CC of the model is {}".format(calculate_catalog_coverage(ratings, test_predictions, 5))
 
 
 
@@ -195,23 +206,22 @@ def evaluate(algo, ratings, testset):
 
 
 # run models with some different parameters and sizes
-# samples = [ [1000, 10], [5000, 50], [100000, 1000], [5000000, 2000] ]
-# samples = [ [1000, 10], [5000, 50] ]
-# k_s = [3, 5, 10, 15, 30, 40]
+samples = [ [1000, 10], [5000, 50], [100000, 1000], [5000000, 2000] ]
+k_s = [3, 5, 10, 15, 30, 40]
 
-# for sample in samples:
-#     i, j = sample
-#     _dataset = F.sample(_ratings, i, j)
-#     print "Evaluating Baseline and KNN on the dataset with {} users and {} items".format(i, j)
-#     print "Evaluating baseline"
+for sample in samples:
+    i, j = sample
+    _dataset = F.sample(_ratings, i, j)
+    print "Evaluating Baseline and KNN on the dataset with {} users and {} items".format(i, j)
+    print "Evaluating baseline"
 
-#     base, base_test = train_baseline(_dataset)
-#     evaluate(base, _dataset, base_test)
+    base, base_test = train_baseline(_dataset)
+    evaluate(base, _dataset, base_test)
 
-#     for k in k_s:
-#         knn, knn_test = train(_dataset, k, 5)
+    for k in k_s:
+        knn, knn_test = train(_dataset, k, 5)
 
-#         print "Evaluating KNN with k of {}".format(k)
-#         evaluate(knn, _dataset, knn_test)
+        print "Evaluating KNN with k of {}".format(k)
+        evaluate(knn, _dataset, knn_test)
 
 
