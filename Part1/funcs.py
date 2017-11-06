@@ -68,7 +68,12 @@ def sample(ratings, n, m):
     movie_sample = ratings['MovieId'].value_counts().head(m).index
 
     subset = ratings.loc[ratings['UserId'].isin(user_sample)].loc[ratings['MovieId'].isin(movie_sample)]
+    # we don't need the timestamp
+    del subset['Timestamp']
     return subset
+
+
+
 
 
 
