@@ -1,5 +1,6 @@
 import pandas as pd 
 import numpy as np
+import surprise as sp
 
 #Define the format of each of the data files
 #Movies; MovieID::Title::Genres
@@ -9,8 +10,8 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
 
 
 
-# _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
-# _ratings = pd.read_csv('./ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+_movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
+_ratings = pd.read_csv('./ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 
 def build_movie_genre_matrix(movies):
     """
@@ -39,19 +40,37 @@ def build_movie_genre_matrix(movies):
 
         
 
-def build_user_item_matrix(ratings, movies):
+def build_user_item_matrix(ratings):
     """
     Return a USERxITEM matrix with values as the user's value for the movie, null otherwise
     Right now not normalized
-    ratings.dat: UserID::MovieID::Rating::Timestamp
-    movies.dat: MovieId::Title::Tag1|Tag2|Tag3
     @param ratings Dataframe
-    @param movies Dataframe
     @returns matrix numpy matrix with a user's ratings per movie
     """
-    matrix = pd.pivot(index = 'UserId', columns = 'MovieId', values = 'Rating').fillna(0)
+    matrix = ratings.pivot(index = 'UserId', columns = 'MovieId', values = 'Rating').fillna(0)
     return matrix
 
+
+
+def sample(ratings, n, m):
+    """
+    Return a smaller matrix with top n users and top m items only
+    @param ratings the ratings dataset 
+    @param n number of users with most ratings
+    @param m number of movies with most ratings
+    @returns NxM matrix of USERxITEM ratings
+    """
+
+    n_users = ratings['UserId'].nunique()
+    n_items = ratings['MovieId'].nunique()
+
+    user_sample = ratings['UserId'].value_counts().head(n).index
+    movie_sample = ratings['MovieId'].value_counts().head(m).index
+
+    subset = ratings.loc[ratings['UserId'].isin(user_sample)].loc[ratings['MovieId'].isin(movie_sample)]
+    # we don't need the timestamp
+    del subset['Timestamp']
+    return subset
 
 
 
