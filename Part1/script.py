@@ -17,11 +17,11 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
 
 print "Starting the script"
 
-_ratings = pd.read_csv('./ratings1m.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+_ratings = pd.read_csv('./ratings.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
 
 
-samples = [ [5000, 100], [10000, 200], [15000, 500] ]
+samples = [ [5000, 100], [10000, 200] ] #, [15000, 500] ]
 
 k_s = range(5, 60, 5)
 factor_sizes = range(5, 60, 5)
