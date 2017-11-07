@@ -149,6 +149,30 @@ def train(ratings, k_neighbors, k_folds):
     testset = testset.build_full_trainset().build_testset()
     return (algo, testset)
 
+def train_matrix(ratings, factor, k_folds):
+    """
+    Train a model and return it. Then we can use the model and evaluate it elsewhere
+    @param ratings dataframe pandas dataframe to train on, with columns UserId, MovieId, Ratings
+    @param n_folds number of folds for cross validation
+    @returns List of (algo, test data)
+    We can call methods such as `test` and `evaluate` on this object 
+    """
+
+    train_data, test_data = cv.train_test_split(ratings, test_size = 0.20)
+    reader = sp.Reader(rating_scale=(1, 5))
+
+    trainset = sp.Dataset.load_from_df(train_data, reader)
+    testset = sp.Dataset.load_from_df(test_data, reader)
+    trainset.split(n_folds = k_folds)
+
+    algo = sp.SVD(n_factors = factor)
+
+    for trainset, _ in trainset.folds():
+        algo.train(trainset)
+        
+    testset = testset.build_full_trainset().build_testset()
+    return (algo, testset)
+
 
 def group_predictions_by_user(predictions):
     """
