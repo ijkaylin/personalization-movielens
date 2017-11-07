@@ -5,7 +5,6 @@ import numpy as np
 from sklearn import cross_validation as cv
 import funcs as F
 import itertools as it
-import time
 
 def build_movie_genre_matrix(movies):
     """
