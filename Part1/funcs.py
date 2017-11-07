@@ -42,11 +42,12 @@ def build_user_item_matrix(ratings):
     matrix = ratings.pivot(index = 'UserId', columns = 'MovieId', values = 'Rating').fillna(0)
     return matrix
 
-
-def sample(ratings, n, m):
+def sample(ratings, user_counts, movie_counts, n, m):
     """
     Return a smaller matrix with top n users and top m items only
     @param ratings the ratings dataset 
+    @param user_counts Count values of user ratings
+    @param movie_counts Movie count values
     @param n number of users with most ratings
     @param m number of movies with most ratings
     @returns NxM matrix of USERxITEM ratings
@@ -54,8 +55,11 @@ def sample(ratings, n, m):
     n_users = ratings['UserId'].nunique()
     n_items = ratings['MovieId'].nunique()
 
-    user_sample = ratings['UserId'].value_counts().head(n).index
-    movie_sample = ratings['MovieId'].value_counts().head(m).index
+    user_sample = user_counts.head(n).index
+    movie_sample = movie_counts.head(m).index
+
+    print len(user_sample)
+    print len(movie_sample)
 
     subset = ratings.loc[ratings['UserId'].isin(user_sample)].loc[ratings['MovieId'].isin(movie_sample)]
     # we don't need the timestamp
@@ -138,7 +142,7 @@ def train(ratings, k_neighbors, k_folds):
 
     trainset.split(n_folds = k_folds)
 
-    similarity_options = { 'name': 'pearson', 'user_based': False }
+    similarity_options = { 'name': 'pearson', 'user_based': True }
     algo = sp.KNNWithMeans(sim_options = similarity_options, k = k_neighbors, min_k = 5)
 
     for _trainset, _ in trainset.folds():

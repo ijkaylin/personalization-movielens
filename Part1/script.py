@@ -20,22 +20,26 @@ print "Starting the script"
 _ratings = pd.read_csv('./ratings1m.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
 
-# samples = [ [10000, 100], [15000, 200] , [15000, 500], [30000, 2000] ]
-samples = [ [5000, 100], [10000, 200] ]
+
+samples = [ [5000, 100], [10000, 200], [15000, 500] ]
 
 k_s = range(5, 60, 5)
 factor_sizes = range(5, 60, 5)
 top_k = 5
 all_results = []
 
+user_value_counts = _ratings['UserId'].value_counts()
+movie_value_counts = _ratings['MovieId'].value_counts()
+
 for sample in samples:
     i, j = sample
-    _dataset = F.sample(_ratings, i, j)
+    _dataset = F.sample(_ratings, user_value_counts, movie_value_counts, i, j)
     print "Running Baseline, MF, KNN on the dataset with {} users and {} items".format(i, j)
 
     base, base_test = F.train_baseline(_dataset)
     base_eval = F.evaluate(base, _dataset, base_test)
     base_eval['name'] = 'baseline'
+    base_eval['sample'] = sample
 
     all_results.append(base_eval)
 
@@ -82,10 +86,10 @@ _print = pp.PrettyPrinter(depth = 2, indent = 2)
 for results in all_results:
     _print.pprint(results)
 
-    json = json.dumps(results)
-    f = open('./out/eval.json', 'w')
-    f.write(json)
-    f.close()
+_json = json.dumps(all_results)
+f = open('./out/eval.json', 'w')
+f.write(_json)
+f.close()
 
 
 
