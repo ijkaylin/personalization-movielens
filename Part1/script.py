@@ -16,10 +16,10 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
 
 print "Evaluate: Starting the script"
 
-_ratings = pd.read_csv('./ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+_ratings = pd.read_csv('./ratings1m.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
 
-samples = [ [1000, 100], [5000, 500]] # , [100000, 4000] ]
+samples = [ [10000, 100], [15000, 500], [30000, 2000], [50000, 5000] ]
 k_s = [3, 5, 10, 15, 30, 40]
 top_k = 5
 all_results = []
