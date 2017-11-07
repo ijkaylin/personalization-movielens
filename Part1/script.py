@@ -102,6 +102,7 @@ def train(ratings, k_neighbors, k_folds):
 
     trainset = sp.Dataset.load_from_df(train_data, reader)
     testset = sp.Dataset.load_from_df(test_data, reader)
+
     trainset.split(n_folds = k_folds)
 
     similarity_options = { 'name': 'pearson', 'user_based': False }
@@ -178,35 +179,8 @@ def evaluate(algo, ratings, testset):
 
 
 
-# class_set = [ 
-#     ('A', 'w', 4),  
-#     ('A', 'x', 3),
-#     ('A', 'z', 5),
-#     ('J', 'w', 3),
-#     ('J', 'y', 4),
-#     ('J', 'z', 2),
-#     ('E', 'w', 3),
-#     ('E', 'x', 5),
-#     ('E', 'z', 2),
-#     ('K', 'y', 2),
-#     ('K', 'z', 5),
-#     ('S', 'x', 3),
-#     ('S', 'y', 2),
-#     ('T', 'w', 4),
-#     ('T', 'x', 2),
-#     ('T', 'y', 1),
-#     ('T', 'z', 2),
-#     ('Z', 'x', 4),
-#     ('Z', 'y', 3)
-# ]
-
-# class_frame = pd.DataFrame(class_set)
-# algo = train(class_frame, 5, 5)
-
-
-
 # run models with some different parameters and sizes
-samples = [ [1000, 10], [5000, 50], [100000, 1000], [5000000, 2000] ]
+samples = [ [1000, 10], [5000, 50], [100000, 2000], [5000000, 4000] ]
 k_s = [3, 5, 10, 15, 30, 40]
 
 for sample in samples:
