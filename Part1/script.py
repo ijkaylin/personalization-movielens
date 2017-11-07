@@ -20,19 +20,43 @@ print "Starting the script"
 _ratings = pd.read_csv('./ratings1m.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 _movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
 
-samples = [ [10000, 100], [15000, 500], [30000, 2000] ]
+# samples = [ [10000, 100], [15000, 200] , [15000, 500], [30000, 2000] ]
+samples = [ [5000, 100], [10000, 200] ]
+
 k_s = range(5, 60, 5)
+factor_sizes = range(5, 60, 5)
 top_k = 5
 all_results = []
 
 for sample in samples:
     i, j = sample
     _dataset = F.sample(_ratings, i, j)
-    print "Running Baseline and KNN on the dataset with {} users and {} items".format(i, j)
+    print "Running Baseline, MF, KNN on the dataset with {} users and {} items".format(i, j)
 
     base, base_test = F.train_baseline(_dataset)
     base_eval = F.evaluate(base, _dataset, base_test)
+    base_eval['name'] = 'baseline'
+
     all_results.append(base_eval)
+
+    for f in factor_sizes:
+        t_0 = time.time()
+
+        mf, mf_test = F.train_matrix(_dataset, f, 5)
+
+        print "Running MF with F of {}".format(f)
+        results = F.evaluate(mf, _dataset, mf_test, top_k)
+        # add k, and sample size to results
+        results['sample'] = sample
+        results['f'] = f
+
+        # add a rough time measurement
+        t_1 = time.time()
+        elapsed = t_1 - t_0
+        results['time'] = elapsed
+        results['name'] = 'mf'
+
+        all_results.append(results)
 
     for k in k_s:
         # rough timer, not great at measuring v.fast computations but probably ok for us
@@ -50,6 +74,7 @@ for sample in samples:
         t_1 = time.time()
         elapsed = t_1 - t_0
         results['time'] = elapsed
+        results['name'] = 'knn'
 
         all_results.append(results)
 

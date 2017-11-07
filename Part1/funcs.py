@@ -234,7 +234,10 @@ def evaluate(algo, ratings, testset, top_k = 5):
     ret['train']['mae'] = sp.accuracy.mae(train_predictions)
 
     # Hackish, baseline does not have a sense of "neighbors"
-    if (algo.__module__ == "surprise.prediction_algorithms.knns"):
+    knn = algo.__module__ = "surprise.prediction_algorithms.knns"
+    mf =  algo.__module__ = "surprise.prediction_algorithms.matrix_factorization"
+
+    if (knn or mf):
         ret['test']['cc'] = calculate_catalog_coverage(ratings, test_predictions, top_k)
 
     return ret
