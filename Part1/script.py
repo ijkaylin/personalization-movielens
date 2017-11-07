@@ -27,8 +27,7 @@ all_results = []
 for sample in samples:
     i, j = sample
     _dataset = F.sample(_ratings, i, j)
-    print "Evaluating Baseline and KNN on the dataset with {} users and {} items".format(i, j)
-    print "Evaluating baseline"
+    print "Running Baseline and KNN on the dataset with {} users and {} items".format(i, j)
 
     base, base_test = F.train_baseline(_dataset)
     base_eval = F.evaluate(base, _dataset, base_test)
@@ -40,7 +39,7 @@ for sample in samples:
 
         knn, knn_test = F.train(_dataset, k, 5)
 
-        print "Evaluating KNN with k of {}".format(k)
+        print "Running KNN with k of {}".format(k)
         results = F.evaluate(knn, _dataset, knn_test, top_k)
         # add k, and sample size to results
         results['sample'] = sample

@@ -105,7 +105,8 @@ def train_baseline(ratings):
     """
     train_data, test_data = cv.train_test_split(ratings, test_size = 0.20)
 
-    algo = AvgBase()
+    # algo = AvgBase()
+    algo = sp.BaselineOnly()
     reader = sp.Reader(rating_scale=(1, 5))
 
     trainset = sp.Dataset.load_from_df(ratings, reader)
@@ -139,8 +140,10 @@ def train(ratings, k_neighbors, k_folds):
 
     trainset.split(n_folds = k_folds)
 
-    similarity_options = { 'name': 'pearson', 'user_based': False }
-    algo = sp.KNNWithMeans(sim_options = similarity_options, k = k_neighbors)
+    # similarity_options = { 'name': 'pearson', 'user_based': False }
+    # algo = sp.KNNWithMeans(sim_options = similarity_options, k = k_neighbors)
+    similarity_options = { 'name': 'pearson_baseline', 'user_based': False }
+    algo = sp.KNNBaseline(sim_options = similarity_options, k = k_neighbors)
 
     for trainset, _ in trainset.folds():
         algo.train(trainset)
