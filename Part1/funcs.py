@@ -139,10 +139,10 @@ def train(ratings, k_neighbors, k_folds):
     trainset.split(n_folds = k_folds)
 
     similarity_options = { 'name': 'pearson', 'user_based': False }
-    algo = sp.KNNWithMeans(sim_options = similarity_options, k = k_neighbors)
+    algo = sp.KNNWithMeans(sim_options = similarity_options, k = k_neighbors, min_k = 5)
 
-    for trainset, _ in trainset.folds():
-        algo.train(trainset)
+    for _trainset, _ in trainset.folds():
+        algo.train(_trainset)
 
 
     testset = testset.build_full_trainset().build_testset()
