@@ -1,10 +1,4 @@
-# # Test some surprise stuff
-
-# import surprise as sp
-# from surprise import AlgoBase
-# import numpy as np
-# from sklearn import cross_validation as cv
-# import itertools as it
+# Run offline model
 import time
 import pandas as pd
 import pprint as pp
@@ -17,23 +11,23 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
 
 print "Starting the script"
 
-_ratings = pd.read_csv('./ratings.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
-_movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
+ratings = pd.read_csv('./ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
 
 
-samples = [ [5000, 100], [10000, 200] ] #, [15000, 500] ]
+samples = [ [5000, 100], [10000, 200], [15000, 500] ]
 
 k_s = range(5, 60, 5)
 factor_sizes = range(5, 60, 5)
 top_k = 5
 all_results = []
 
-user_value_counts = _ratings['UserId'].value_counts()
-movie_value_counts = _ratings['MovieId'].value_counts()
+user_value_counts = ratings['UserId'].value_counts()
+movie_value_counts = ratings['MovieId'].value_counts()
 
 for sample in samples:
     i, j = sample
-    _dataset = F.sample(_ratings, user_value_counts, movie_value_counts, i, j)
+    _dataset = F.sample(ratings, user_value_counts, movie_value_counts, i, j)
     print "Running Baseline, MF, KNN on the dataset with {} users and {} items".format(i, j)
 
     base, base_test = F.train_baseline(_dataset)
@@ -63,7 +57,7 @@ for sample in samples:
         all_results.append(results)
 
     for k in k_s:
-        # rough timer, not great at measuring v.fast computations but probably ok for us
+        # rough timer, not great at measuring v.fast computations but fine for us
         t_0 = time.time()
 
         knn, knn_test = F.train(_dataset, k, 5)
@@ -87,7 +81,7 @@ for results in all_results:
     _print.pprint(results)
 
 _json = json.dumps(all_results)
-f = open('./out/eval.json', 'w')
+f = open('./eval.json', 'w')
 f.write(_json)
 f.close()
 
