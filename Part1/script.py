@@ -16,6 +16,8 @@ movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='pytho
 
 
 samples = [ [5000, 100], [10000, 200], [15000, 500] ]
+# vary_items = [ [10000, i] for i in range(25, 125, 25) ]
+# vary_users = [ [i, 100] for i in range(5000, 11000, 1000) ]
 
 k_s = range(5, 60, 5)
 factor_sizes = range(5, 60, 5)
@@ -25,7 +27,7 @@ all_results = []
 user_value_counts = ratings['UserId'].value_counts()
 movie_value_counts = ratings['MovieId'].value_counts()
 
-for sample in samples:
+for sample in vary_items:
     i, j = sample
     _dataset = F.sample(ratings, user_value_counts, movie_value_counts, i, j)
     print "Running Baseline, MF, KNN on the dataset with {} users and {} items".format(i, j)
@@ -81,7 +83,7 @@ for results in all_results:
     _print.pprint(results)
 
 _json = json.dumps(all_results)
-f = open('./eval.json', 'w')
+f = open('./output.json', 'w')
 f.write(_json)
 f.close()
 
