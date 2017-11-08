@@ -11,7 +11,7 @@ moviescol = ['MovieId', 'Title', 'Genres','Action', 'Adventure',
 
 print "Starting the script"
 
-ratings = pd.read_csv('./ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+ratings = pd.read_csv('./ratings.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 movies = pd.read_csv('./movies.dat', sep ='::', names = moviescol, engine='python')
 
 
