@@ -1,6 +1,10 @@
 This is the code and notebook for Part1 of the project. We used the
 movielens dataset with 10m ratings. These can be found in `ratings.dat`.
 
+Before doing anything, you must download the dataset [Dataset here](http://grouplens.org/datasets/movielens/10m/),
+and place the files `ratings.dat`, `movies.dat`, and `tags.dat` in the `Part1/` directory. They are not
+included in this repository because they're very large files.
+
 The notebook file contains a write up and explanation of our methods. 
 We sampled subsets of the data by taking the most popular users and items and training a KNN model and matrix factorization model on the subsets.
 
