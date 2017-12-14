@@ -3,7 +3,6 @@ from surprise import AlgoBase
 import pandas as pd
 import numpy as np
 from sklearn import cross_validation as cv
-import funcs as F
 import itertools as it
 
 def build_movie_genre_matrix(movies):
