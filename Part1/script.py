@@ -27,7 +27,7 @@ all_results = []
 user_value_counts = ratings['UserId'].value_counts()
 movie_value_counts = ratings['MovieId'].value_counts()
 
-for sample in vary_items:
+for sample in samples:
     i, j = sample
     _dataset = F.sample(ratings, user_value_counts, movie_value_counts, i, j)
     print "Running Baseline, MF, KNN on the dataset with {} users and {} items".format(i, j)
