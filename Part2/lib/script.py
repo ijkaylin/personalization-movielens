@@ -6,10 +6,11 @@ import knn as knn
 import json
 import pprint as pp
 import time
+import gc
 
 
 toy = pd.read_csv('../toy.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
-ratings = pd.read_csv('../ratings10k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+ratings = pd.read_csv('../ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 # ratings = pd.read_csv('../ratings.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 
 
@@ -33,11 +34,12 @@ def train_test(df):
 
     return (train, test)
 
+
+# samples = [ [5000, 100], [10000, 200], [15000, 500] ]
 samples = [ [500, 10], [1000, 20], [1500, 50] ]
-distances = ['pearson', 'adjusted_cosine']
 all_results = []
-k_s = range(5, 15, 5)
-# factor_sizes = range(5, 45, 5)
+k_s = range(5, 45, 5)
+factor_sizes = range(5, 45, 5)
 
 for sample in samples:
     i, j = sample
@@ -55,38 +57,109 @@ for sample in samples:
 
 
     for k in k_s:
-        for d in distances:
-        # rough timer, not great at measuring v.fast computations but fine for us
-            t_0 = time.time()
-            _knn = knn.KNN(train, ratings, similarity = d, by = 'item', k = k)
-            _knn.train()
 
-            train_preds = _knn.predict()
-            test_preds = _knn.predict(test)
+        # MF model
+        t_0 = time.time()
 
-            results = {}
-            results['sample'] = sample
-            results['name'] = 'knn'
-            results['distance'] = d
+        mf, mf_test = F.train_matrix(subset, k, 5)
 
-            print "Running KNN with k of {}".format(k)
-            results = F.evaluate(knn, _dataset, knn_test, top_k)
-            # add k, and sample size to results
-            results['sample'] = sample
-            results['k'] = k
+        print "Running MF with k of {}".format(k)
+        results = F.evaluate(mf, subset, mf_test, k)
+        # add k, and sample size to results
+        results['sample'] = sample
+        results['f'] = k
 
-            results['test'] = { 'mae': 0, 'cc': 0.75 }
-            results['train'] = { 'mae': 0 , 'cc': 0.75 }
+        # add a rough time measurement
+        t_1 = time.time()
+        elapsed = t_1 - t_0
+        results['time'] = elapsed
+        results['name'] = 'mf'
 
-            results['train']['mae'] = _knn.mae(train_preds)
-            results['test']['mae'] = _knn.mae(test_preds)
+        # finally, we need these for the hybrid
+        trainset = mf.trainset.build_testset()
+        anti_trainset = mf.trainset.build_anti_testset()
 
-            # add a rough time measurement
-            t_1 = time.time()
-            elapsed = t_1 - t_0
-            results['time'] = elapsed
+        train_preds = mf.test(trainset)
+        anti_preds = mf.test(anti_trainset)
 
-            all_results.append(results)
+        mf_preds = train_preds + anti_preds
+
+        all_results.append(results)
+
+
+
+        # KNN model
+        # t_0 = time.time()
+        # print "Running KNN with k of {}".format(k)
+
+        # algo = F.custom_knn(train.copy(), subset.copy(), similarity = 'adjusted_cosine', by = 'item', k = k)
+
+        # train_preds = algo.predict()
+        # test_preds = algo.predict(test.copy())
+
+        # results = {}
+        # results['sample'] = sample
+        # results['name'] = 'knn'
+
+        # results['k'] = k
+
+        # results['test'] = { 'mae': 0, 'cc': 0.75 }
+        # results['train'] = { 'mae': 0 , 'cc': 0.75 }
+
+        # results['train']['mae'] = algo.mae(train_preds)
+        # results['test']['mae'] = algo.mae(test_preds)
+
+        # # add a rough time measurement
+        # t_1 = time.time()
+        # elapsed = t_1 - t_0
+        # results['time'] = elapsed
+
+        # all_results.append(results)
+
+
+        # # Hybrid model, run KNN w/ MF predictions as input
+
+        t_0 = time.time()
+        print "Running Hybrid with k of {}".format(k)
+
+        mf_df = pd.DataFrame(mf_preds)
+        mf_df = mf_df[['uid', 'iid', 'est']]
+        mf_df.columns = ['UserId', 'MovieId', 'Rating']
+
+        # filter the test set
+        keys = ['UserId', 'MovieId']
+        i1 = test.set_index(keys).index
+        i2 = mf_df.set_index(keys).index
+        test = test[i1.isin(i2)]
+
+        print len(test)
+
+        # train on all the predictions
+        algo = F.custom_knn(mf_df.copy(), mf_df.copy(), similarity = 'adjusted_cosine', by = 'item', k = k)
+
+        train_preds = algo.predict()
+        test_preds = algo.predict(test.copy())
+
+        results = {}
+        results['sample'] = sample
+        results['name'] = 'hybrid'
+
+        # add k, and sample size to results
+        results['sample'] = sample
+        results['k'] = k
+
+        results['test'] = { 'mae': 0, 'cc': 0.75 }
+        results['train'] = { 'mae': 0 , 'cc': 0.75 }
+
+        results['train']['mae'] = algo.mae(train_preds)
+        results['test']['mae'] = algo.mae(test_preds)
+
+        # add a rough time measurement
+        t_1 = time.time()
+        elapsed = t_1 - t_0
+        results['time'] = elapsed
+
+        all_results.append(results)
 
 
 _print = pp.PrettyPrinter(depth = 2, indent = 2)
@@ -94,6 +167,6 @@ for results in all_results:
     _print.pprint(results)
 
 _json = json.dumps(all_results)
-f = open('../out/output.json', 'w')
+f = open('../out/mf_hybrid.json', 'w')
 f.write(_json)
 f.close()

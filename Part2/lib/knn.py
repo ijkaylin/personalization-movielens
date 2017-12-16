@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import distance as dist
 from collections import namedtuple
+import funcs as F
+import time
 
 # this is mostly an object wrapper around
 # the functional distance.py
@@ -10,43 +12,15 @@ from collections import namedtuple
 pd.options.mode.chained_assignment = None
 
 # need complete set to build the map
-class KNN():
+class KNN:
     def __init__(self, df, complete_set, similarity = 'cosine', by = 'item', k = 5):
         self.df = df # train data, basically
         self.complete_set = complete_set # we need all of it for converting ids
         self.by = by
         self.row, self.col = ('MovieId', 'UserId') if by == 'item' else ('UserId', 'MovieId')
-
-        # convert to internal ids
-        self.build_id_maps()
-        self.df = self.convert_ids(self.df)
-        print "Finished converting ids"
-
         self.similarity = similarity
         self.k = k
-        # normalize by the *user*, but still do everything
-        # else by item
-        if (similarity == 'adjusted_cosine'):
-            self.means = dist.get_means(self.df, 'user')
-            self.df = dist.normalize_means(self.df, 'user')
-            # from now on pearson is just cosine, and similarity must be item
-            self.similarity = 'cosine'
-            self.by = 'item'
 
-        elif (similarity == 'pearson'):
-            self.means = dist.get_means(self.df, by)
-            self.df = dist.normalize_means(self.df, self.by)
-
-        else:
-            self.means = dist.get_means(self.df, by)
-
-        print self.means
-
-
-
-    # we want ids to go from 0 -> length, for matrix operations 
-    # but we need to be able to get back the originals
-    def build_id_maps(self):
         row_ids = self.complete_set[self.row].unique()
         col_ids = self.complete_set[self.col].unique()
 
@@ -56,8 +30,25 @@ class KNN():
         self.rowid_ix_map = { v: k for k, v in self.rowix_id_map.iteritems() }
         self.colid_ix_map = { v: k for k, v in self.colix_id_map.iteritems() }
 
-        print self.rowid_ix_map
-        print self.colid_ix_map
+        # change all user/movie ids, need to undo this when predicting
+        self.df['OriginalRow'] = self.df[self.row]
+        self.df['OriginalCol'] = self.df[self.col]
+
+        self.df[self.row] = self.df.copy()[self.row].apply(lambda x: self.to_ix(x, by = 'row'))
+        self.df[self.col] = self.df.copy()[self.col].apply(lambda x: self.to_ix(x, by = 'col'))
+
+        if (self.similarity == 'adjusted_cosine'):
+            self.means = dist.get_means(self.complete_set, 'user')
+            self.df = dist.normalize_means(self.df, 'user')
+            # from now on pearson is just cosine, and similarity must be item
+            self.by = 'item'
+
+        elif (self.similarity == 'pearson'):
+            self.means = dist.get_means(self.complete_set, self.by)
+            self.df = dist.normalize_means(self.df, self.by)
+
+        else:
+            self.means = dist.get_means(self.complete_set, self.by)
 
 
     # go back and forth
@@ -75,16 +66,6 @@ class KNN():
         else:
             return self.colix_id_map[ix]
 
-    def convert_ids(self, _df):
-        # change all user/movie ids, need to undo this when predicting
-        _df['OriginalRow'] = _df[self.row]
-        _df['OriginalCol'] = _df[self.col]
-
-        _df[self.row] = _df.apply(lambda row: self.to_ix(row[self.row], 'row'), axis = 1)
-        _df[self.col] = _df.apply(lambda row: self.to_ix(row[self.col], 'col'), axis = 1)
-
-        return _df
-
 
 
     # adjust internal dataframe with normalized means
@@ -94,21 +75,20 @@ class KNN():
         self.df = dist.normalize_means(self.df, self.by)
 
     def train(self):
-        print "Computing similarity matrix"
         self.scores = dist.build_similarity_matrix(self.df, self.by, self.similarity)
 
 
     # generate predictions, attach them to predictions
     # @return predictions
     def predict(self, new_data = None):
-        print "Computing predictions"
-
         if new_data is None:
             rm = dist.build_user_item_matrix(self.df, self.by)
             rm = pd.DataFrame.as_matrix(rm)
         else:
             # need to convert to internal ids
-            new_data = self.convert_ids(new_data)
+            new_data = new_data.copy()
+            new_data[self.row] = new_data.copy()[self.row].apply(lambda x: self.to_ix(x, by = 'row'))
+            new_data[self.col] = new_data.copy()[self.col].apply(lambda x: self.to_ix(x, by = 'col'))
             rm = dist.build_user_item_matrix(new_data, self.by)
             rm = pd.DataFrame.as_matrix(rm)
 
@@ -119,18 +99,20 @@ class KNN():
         # @take a Prediction container
         # @return pearson prediction
         def _p(pred):
+            row_val = self.to_id(pred.row, 'row')
             if pred.actual is not None:
-                actual = pred.actual + self.means[pred.row]
+                actual = pred.actual + self.means[row_val]
             else:
                 actual = None
 
-            adj_estimate = pred.estimate + self.means[pred.row]
+            adj_estimate = pred.estimate + self.means[row_val]
             return Prediction(pred.row, pred.col, adj_estimate, actual)
 
         # if adjusted cosine, need to add the mean back to actual
         def _ac(pred):
+            col_val = self.to_id(pred.col, 'col')
             if pred.actual is not None:
-                actual = pred.actual + self.means[pred.col]
+                actual = pred.actual + self.means[col_val]
             else:
                 actual = None
 
@@ -150,5 +132,13 @@ class KNN():
 
         n = reduce(lambda a, b: a + abs(b.actual - b.estimate), actuals, 0)
         return n / len(actuals)
+
+
+
+
+
+
+
+
 
 
