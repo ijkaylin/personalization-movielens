@@ -253,7 +253,15 @@ class KNN:
         self.df = df # train data, basically
         self.complete_set = complete_set # we need all of it for converting ids
         self.by = by
-        self.row, self.col = ('MovieId', 'UserId') if by == 'item' else ('UserId', 'MovieId')
+
+        print self.by
+
+        if self.by == 'item':
+            self.row, self.col = ('MovieId', 'UserId')
+        else:
+            self.row, self.col = ('UserId', 'MovieId')
+
+        print "Row, col {} {}".format(self.row, self.col)
         self.similarity = similarity
         self.k = k
 
@@ -320,6 +328,9 @@ class KNN:
         if new_data is None:
             rm = dist.build_user_item_matrix(self.df, self.by)
             rm = pd.DataFrame.as_matrix(rm)
+
+            print self.row
+            row_cols = list(zip(self.df[self.row], self.df[self.col]))
         else:
             # need to convert to internal ids
             new_data = new_data.copy().reset_index()
@@ -328,8 +339,10 @@ class KNN:
             rm = dist.build_user_item_matrix(new_data, self.by)
             rm = pd.DataFrame.as_matrix(rm)
 
+            row_cols = list(zip(new_data[self.row], new_data[self.col]))
 
-        preds = dist.predict(rm, self.scores, self.by, self.k)
+
+        preds = dist.predict(rm, self.scores, row_cols, self.by, self.k)
         Prediction = namedtuple('Prediction', ['row', 'col', 'estimate', 'actual'])
         # if pearson, need to add the means back
         # @take a Prediction container
@@ -374,7 +387,7 @@ def custom_knn(train, complete, similarity, by, k):
     _train = train.copy()
     _complete = complete.copy()
 
-    algo = KNN(_train, _complete, similarity, k)
+    algo = KNN(_train, _complete, similarity, by, k)
     algo.train()
     return algo    
 

@@ -10,8 +10,8 @@ import gc
 
 
 toy = pd.read_csv('../toy.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
-ratings = pd.read_csv('../ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
-# ratings = pd.read_csv('../ratings.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+# ratings = pd.read_csv('../ratings100k.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
+ratings = pd.read_csv('../ratings.dat', sep = '::', names = ['UserId', 'MovieId', 'Rating', 'Timestamp'], engine = 'python')
 
 
 
@@ -35,15 +35,23 @@ def train_test(df):
     return (train, test)
 
 
-# samples = [ [5000, 100], [10000, 200], [15000, 500] ]
-samples = [ [500, 10], [1000, 20], [1500, 50] ]
+samples = [ [5000, 100], [10000, 200], [15000, 500] ]
+# samples = [ [5000, 100], [10000, 200], [15000, 500], [20000, 1000] ]
 all_results = []
 k_s = range(5, 45, 5)
 factor_sizes = range(5, 45, 5)
 
 for sample in samples:
+
     i, j = sample
     subset = F.sample(ratings, user_counts, movie_counts, i, j)
+
+    if j == 100: 
+        max_k = 25
+    else: 
+        max_k = 45
+
+    k_s = range(5, max_k, 5)
     train, test = train_test(subset)
 
     print "Running Baseline, KNN on the dataset with {} users and {} items".format(i, j)
@@ -58,16 +66,20 @@ for sample in samples:
 
     for k in k_s:
 
+        f = k
+        if f > 25:
+            f = 25
+
         # MF model
         t_0 = time.time()
 
-        mf, mf_test = F.train_matrix(subset, k, 5)
+        mf, mf_test = F.train_matrix(subset, f, 5)
 
-        print "Running MF with k of {}".format(k)
-        results = F.evaluate(mf, subset, mf_test, k)
+        print "Running MF with k of {}".format(f)
+        results = F.evaluate(mf, subset, mf_test, f)
         # add k, and sample size to results
         results['sample'] = sample
-        results['f'] = k
+        results['f'] = f
 
         # add a rough time measurement
         t_1 = time.time()
@@ -128,17 +140,17 @@ for sample in samples:
 
         # filter the test set
         keys = ['UserId', 'MovieId']
-        i1 = test.set_index(keys).index
+        i1 = subset.set_index(keys).index
         i2 = mf_df.set_index(keys).index
-        test = test[i1.isin(i2)]
+        _test = subset[i1.isin(i2)]
 
-        print len(test)
+        print len(_test)
 
         # train on all the predictions
         algo = F.custom_knn(mf_df.copy(), mf_df.copy(), similarity = 'adjusted_cosine', by = 'item', k = k)
 
         train_preds = algo.predict()
-        test_preds = algo.predict(test.copy())
+        test_preds = algo.predict(_test.copy())
 
         results = {}
         results['sample'] = sample

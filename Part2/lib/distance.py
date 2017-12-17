@@ -166,31 +166,47 @@ def predict_user_item_pair(rm, scores, row_id, col_id, k = 5):
 
 
 # predict all
+# @param List{(row_id, col_id)} to look up
 # @returns List{Prediction Tuples}
-def predict(rm, scores, by = 'item', k = 5):
+def predict(rm, scores, row_cols, by = 'item', k = 5):
     Prediction = namedtuple('Prediction', ['row', 'col', 'estimate', 'actual'])
 
-    if by == 'item':
-        _rm = rm.transpose()
-        _scores = scores.transpose()
+    _len = len(row_cols)
+    print "Len pre filter: {}".format(_len)
+    # filter row_cols
+    print "shape: {}".format(rm.shape)
+    max_r, max_c = rm.shape
+    max_r, max_c = max_r - 1, max_c - 1
 
-    _len, _width = rm.shape
+    print "max_r, max_c => {}, {}".format(max_r, max_c)
+
+    row_cols = filter(lambda t: t[0] <= max_r and t[1] <= max_c, row_cols)
+    _len = len(row_cols)
+
+    max_col = max(row_cols, key = lambda x: x[1])[1]
+    print "max_col => {}".format(max_col)
+
+    print "Len post filter: {}".format(_len)
 
     finished = 0
-    to_finish = _len * _width
+    to_finish = _len
+
 
     ret = []
-    for r in range(0, _len):
-        for  c in range(0, _width):
-            estimate = predict_user_item_pair(rm, scores, r, c, k)
-            actual = rm[r, c] if rm[r, c] != 0 else None
-
-            pred = Prediction(r, c, estimate, actual)
-            ret.append(pred)
-
+    for r, c in row_cols:
+        if rm[r, c] == 0:
             finished += 1
-            if finished % 1000 == 0:
-                print "Finished predicting {}/{}".format(finished, to_finish)
+            continue
+
+        actual = rm[r, c]
+        estimate = predict_user_item_pair(rm, scores, r, c, k)
+
+        pred = Prediction(r, c, estimate, actual)
+        ret.append(pred)
+
+        finished += 1
+        if finished % 1000 == 0:
+            print "Finished predicting {}/{}".format(finished, to_finish)
 
     return ret
 
